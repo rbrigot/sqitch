@@ -3,8 +3,8 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 201;
-#use Test::More 'no_plan';
+use Test::More tests => 210;
+# use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::Exception;
@@ -178,6 +178,35 @@ is_deeply +MockOutput->get_emit, [
     ["pg\tdb:pg:try"],
     ["sqlite\twidgets"]
 ], 'The list of engines and their targets should have been output';
+
+##############################################################################
+# Test _target().
+TARGET: {
+    isa_ok $cmd = $CLASS->new({
+        sqitch => App::Sqitch->new( config => $config, options => { })
+    }), $CLASS, 'New engine';
+
+    is $cmd->_target('pg', undef), undef, 'Target should be undef';
+    is $cmd->_target('pg', 'db:pg:'), 'db:pg:',
+        'Target should fall back on passed name';
+
+    throws_ok { $cmd->_target('pg', 'db:sqlite:') } 'App::Sqitch::X',
+        'Should get error for mismatched target engine';
+    is $@->ident, 'engine', 'Mismatched target error ident should be "engine"';
+    is $@->message, __x(
+        'Cannot assign URI using engine "{new}" to engine "{old}"',
+        new => 'sqlite',
+        old => 'pg',
+    ), 'Mismatched target error message should be correct';
+
+    throws_ok { $cmd->_target('pg', 'nonesuch') } 'App::Sqitch::X',
+    'Should get error for unknown target';
+    is $@->ident, 'engine', 'Uknown target error ident should be "engine"';
+    is $@->message, __x(
+        'Unknown target "{target}"',
+        target => 'nonesuch'
+    ), 'Unkonwn target error message should be correct';
+}
 
 ##############################################################################
 # Test add().
