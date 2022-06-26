@@ -63,6 +63,7 @@ is $fb->key, 'firebird', 'Key should be "firebird"';
 is $fb->name, 'Firebird', 'Name should be "Firebird"';
 is $fb->username, $ENV{ISC_USER}, 'Should have username from environment';
 is $fb->password, $ENV{ISC_PASSWORD}, 'Should have password from environment';
+is $fb->_limit_default, '18446744073709551615', 'Should have _limit_default';
 
 my $have_fb_client;
 if ($have_fb_driver && (my $client = try { $fb->client })) {
@@ -278,7 +279,26 @@ is $dt->second,  1, 'DateTime second should be set';
 is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
 
 ##############################################################################
+# Test error checking functions.
+DBI: {
+    local *DBI::errstr;
+    ok !$fb->_no_table_error, 'Should have no table error';
+    ok !$fb->_no_column_error, 'Should have no column error';
 
+    $DBI::errstr = '-Table unknown';
+    ok $fb->_no_table_error, 'Should now have table error';
+    ok !$fb->_no_column_error, 'Still should have no column error';
+
+    $DBI::errstr = 'No such file or directory';
+    ok $fb->_no_table_error, 'Should again have table error';
+    ok !$fb->_no_column_error, 'Still should have no column error';
+
+    $DBI::errstr = '-Column unknown';
+    ok !$fb->_no_table_error, 'Should again have no table error';
+    ok $fb->_no_column_error, 'Should now have no column error';
+}
+
+##############################################################################
 # Can we do live tests?
 my ($data_dir, $fb_version, @cleanup) = ($tmpdir);
 my $id = DBIEngineTest->randstr;
