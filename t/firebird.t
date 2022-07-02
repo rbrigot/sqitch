@@ -332,7 +332,7 @@ DBH: {
     $mock_sqitch->mock(run => sub { $run = 1 });
 
     # Test that upgrading disconnects from a local database before upgrading.
-    ok $fb->run_upgrade, 'Run the upgrade';
+    ok $fb->run_upgrade('somefile'), 'Run the upgrade';
     ok $disconnect, 'Should have disconnected';
     ok $clear, 'Should have cleared the database handle';
     ok $run, 'Should have run a command';
