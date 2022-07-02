@@ -374,7 +374,7 @@ FSPEC: {
     my $tmpdir = tempdir(CLEANUP => 1);
     my $tmp = Path::Class::Dir->new("$tmpdir");
     my $fbsql = $tmp->file('fbsql')->touch;
-    chmod '0755', $fbsql if App::Sqitch::ISWIN;
+    chmod '0755', $fbsql unless App::Sqitch::ISWIN;
 
     my $fs_mock = Test::MockModule->new('File::Spec');
     $fs_mock->mock(path => sub { $tmp });
