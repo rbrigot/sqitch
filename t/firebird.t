@@ -159,7 +159,6 @@ is $@->message, __x(
     uri => 'db:firebird:',
 ), 'No dbname exception message should be correct';
 
-
 ##############################################################################
 # Test _run(), _capture(), and _spool().
 can_ok $fb, qw(_run _capture _spool);
@@ -296,6 +295,24 @@ DBI: {
     $DBI::errstr = '-Column unknown';
     ok !$fb->_no_table_error, 'Should again have no table error';
     ok $fb->_no_column_error, 'Should now have no column error';
+}
+
+# Test database creation failure.
+DBFAIL: {
+    my $mock = Test::MockModule->new($CLASS);
+    $mock->mock(initialized => 0);
+    $mock->mock(use_driver => 1);
+    my $fbmock = Test::MockModule->new('DBD::Firebird', no_auto => 1);
+    $fbmock->mock(create_database => sub { die 'Creation failed' });
+    throws_ok { $fb->initialize } 'App::Sqitch::X',
+        'Should get an error from initialize';
+        is $@->ident, 'firebird', 'No creattion exception ident should be "firebird"';
+        my $msg = __x(
+            'Cannot create database {database}: {error}',
+            database => $fb->connection_string($fb->registry_uri),
+            error => 'Creation failed',
+        );
+        like $@->message, qr{^\Q$msg\E}, 'Creation exception message should be correct';
 }
 
 ##############################################################################
