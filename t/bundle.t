@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 306;
+use Test::More tests => 314;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
@@ -173,6 +173,13 @@ FSERR: {
         path  => 'foo',
         error => 'Permission denied yo',
     ), 'The permission error should be formatted properly';
+
+    # Try an error with no path.
+    throws_ok { $bundle->_mkpath('') } 'App::Sqitch::X',
+        'Should fail on nonexistent file';
+    is $@->ident, 'bundle', 'Nonexistant path error should have ident "bundle"';
+    is $@->message, 'Permission denied yo',
+        'Nonexistant path error should be the message';
 }
 
 ##############################################################################
@@ -452,13 +459,17 @@ file_not_exists_ok $_ for ($conf_file, @sql, @engine);
 $config = TestConfig->from(local => 'multiplan.conf');
 $sqitch = App::Sqitch->new(config => $config);
 isa_ok $bundle = $CLASS->new(
-    sqitch  => $sqitch,
-    config  => $config,
-    all     => 1,
+    sqitch   => $sqitch,
+    config   => $config,
+    all      => 1,
+    from     => '@ROOT',
     dest_dir => dir '_build',
 ), $CLASS, 'all multiplan bundle command';
 ok $bundle->execute, 'Execute multi-target bundle!';
 file_exists_ok $_ for ($conf_file, @sql, @engine);
+is_deeply +MockOutput->get_warn, [[__(
+    "Use of --to or --from to bundle multiple targets is not recommended.\nPass them as arguments after each target argument, instead."
+)]], 'Should have a warning about --from and -too';
 
 # Make sure we get an error with both --all and a specified target.
 throws_ok { $bundle->execute('pg' ) } 'App::Sqitch::X',
@@ -470,8 +481,8 @@ is $@->message, __(
 
 # Try without --all.
 isa_ok $bundle = $CLASS->new(
-    sqitch  => $sqitch,
-    config  => $sqitch->config,
+    sqitch   => $sqitch,
+    config   => $sqitch->config,
     dest_dir => dir '_build',
 ), $CLASS, 'multiplan bundle command';
 remove_tree $multidir->stringify;
@@ -513,8 +524,8 @@ for my $spec (
 
 # Make sure we handle --to and --from.
 isa_ok $bundle = $CLASS->new(
-    sqitch  => $sqitch,
-    config  => $sqitch->config,
+    sqitch   => $sqitch,
+    config   => $sqitch->config,
     from     => 'widgets',
     to       => 'widgets',
     dest_dir => dir '_build',
@@ -532,8 +543,8 @@ file_contents_is $engine[0],
 
 # Make sure we handle to and from args.
 isa_ok $bundle = $CLASS->new(
-    sqitch  => $sqitch,
-    config  => $sqitch->config,
+    sqitch   => $sqitch,
+    config   => $sqitch->config,
     dest_dir => dir '_build',
 ), $CLASS, 'another bundle command';
 remove_tree $multidir->stringify;
@@ -570,3 +581,15 @@ is $@->message, __nx(
     3,
     arg => join ', ', qw(ba da dum)
 ), 'Unknown arguments error message should be correct';
+
+# Should die on both changes and --from or -to.
+isa_ok $bundle = $CLASS->new(
+    sqitch   => $sqitch,
+    config   => $sqitch->config,
+    from     => '@ROOT',
+), $CLASS, 'all multiplan bundle command';
+throws_ok { $bundle->execute(qw(widgets)) } 'App::Sqitch::X',
+    'Should get an exception a change name and --from';
+is $@->ident, 'bundle', 'Conflicting arguments error ident shoud be "bundle"';
+is $@->message, __('Cannot specify both --from or --to and change arguments'),
+    'Conflicting arguments error message should be correct';
