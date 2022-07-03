@@ -900,7 +900,8 @@ sub default_client {
             my $path = file $dir, $try;
             Test::More::diag("Path: $path") if $ENV{FOO};
             Test::More::diag("Exists: ", -e $path) if $ENV{FOO};
-            $path = Win32::GetShortPathName($path) if App::Sqitch::ISWIN;
+            # GetShortPathName returns undef for nonexistent files.
+            $path = Win32::GetShortPathName($path) // next if App::Sqitch::ISWIN;
             if (-f $path && -x $path) {
                 if (try { App::Sqitch->probe($path, @opts) =~ /Firebird/ } ) {
                     # Restore STDERR and return.
