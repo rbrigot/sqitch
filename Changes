@@ -20,6 +20,7 @@ Revision history for Perl extension App::Sqitch
      - Removed the `sqitch engine update-config` action, originally added for
        compatibility reasons in 2014, and no prompt to use it since 0.9999
        in 2019.
+     - Fixed a warning when searching for the Firebird client on Windows.
 
 1.2.1  2021-12-05T19:59:45Z
      - Updated all the live engine tests, aside from Oracle, to test with

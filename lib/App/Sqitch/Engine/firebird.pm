@@ -898,8 +898,6 @@ sub default_client {
         my $loops = 0;
         for my $dir (File::Spec->path) {
             my $path = file $dir, $try;
-            Test::More::diag("Path: $path") if $ENV{FOO};
-            Test::More::diag("Exists: ", -e $path) if $ENV{FOO};
             # GetShortPathName returns undef for nonexistent files.
             $path = Win32::GetShortPathName($path) // next if App::Sqitch::ISWIN;
             if (-f $path && -x $path) {
@@ -910,7 +908,6 @@ sub default_client {
                     );
                     return $loops ? $path->stringify : $try;
                 }
-                Test::More::diag("LOOOOOOPS") if $ENV{FOO};
                 $loops++;
             }
         }
