@@ -373,10 +373,12 @@ FSPEC: {
     # Give it an invalid fbsql file to find.
     my $tmpdir = tempdir(CLEANUP => 1);
     my $tmp = Path::Class::Dir->new("$tmpdir");
-    my $fbsql = $tmp->file(
-        'fbsql' . (App::Sqitch::ISWIN || $^O eq 'cygwin' ? '.exe' : '')
-    )->touch;
-    chmod '0755', $fbsql unless App::Sqitch::ISWIN;
+    my $iswin = App::Sqitch::ISWIN || $^O eq 'cygwin';
+    my $fbsql = $tmp->file('fbsql' . ($iswin ? '.exe' : ''));
+    $fbsql->touch;
+    diag "Testing $fbsql";
+    chmod '0755', $fbsql unless $iswin;
+    local $ENV{FOO} = 1;
 
     my $fs_mock = Test::MockModule->new('File::Spec');
     $fs_mock->mock(path => sub { $tmp });

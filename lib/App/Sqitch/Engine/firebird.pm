@@ -898,6 +898,8 @@ sub default_client {
         my $loops = 0;
         for my $dir (File::Spec->path) {
             my $path = file $dir, $try;
+            Test::More::diag("Path: $path") if $ENV{FOO};
+            Test::More::diag("Exists: ", -e $path) if $ENV{FOO};
             $path = Win32::GetShortPathName($path) if App::Sqitch::ISWIN;
             if (-f $path && -x $path) {
                 if (try { App::Sqitch->probe($path, @opts) =~ /Firebird/ } ) {
@@ -907,6 +909,7 @@ sub default_client {
                     );
                     return $loops ? $path->stringify : $try;
                 }
+                Test::More::diag("LOOOOOOPS") if $ENV{FOO};
                 $loops++;
             }
         }
