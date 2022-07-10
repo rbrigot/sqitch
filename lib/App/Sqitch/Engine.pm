@@ -188,7 +188,6 @@ sub use_driver {
 
 sub deploy {
     my ( $self, $to, $mode ) = @_;
-    $self->lock_destination;
     my $sqitch   = $self->sqitch;
     my $plan     = $self->_sync_plan;
     my $to_index = $plan->count - 1;
@@ -237,6 +236,8 @@ sub deploy {
         $self->upgrade_registry;
     }
 
+    # The registry exists; lock the destination and announce the plan.
+    $self->lock_destination;
     $sqitch->info(
         defined $to ? __x(
             'Deploying changes through {change} to {destination}',
@@ -270,11 +271,13 @@ sub deploy {
 
 sub revert {
     my ( $self, $to ) = @_;
-    $self->lock_destination;
+
+    # Check the registry and, once we know it's there, lock the destination.
     $self->_check_registry;
+    $self->lock_destination;
+
     my $sqitch = $self->sqitch;
     my $plan   = $self->plan;
-
     my @changes;
 
     if (defined $to) {
