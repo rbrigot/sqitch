@@ -25,7 +25,7 @@ require_ok $CLASS;
 my $config = TestConfig->new(
     'core.engine'    => 'sqlite',
     'core.top_dir'   => dir('test-plan_cmd')->stringify,
-    'core.plan_file' => file(qw(t sql sqitch.plan))->stringify,
+    'core.plan_file' => file(qw(t plans dependencies.plan))->stringify,
 );
 ok my $sqitch = App::Sqitch->new(config => $config),
     'Load a sqitch sqitch object';
@@ -646,7 +646,7 @@ $mock_cmd->mock(parse_args => sub {
 });
 $orig_parse = $mock_cmd->original('parse_args');
 
-# Try specifying an unkonwn target.
+# Try specifying an unknown target.
 ok $cmd = $CLASS->new( sqitch => $sqitch, target => 'foo'),
     'Create plan command with unknown target option';
 throws_ok { $cmd->execute } 'App::Sqitch::X',
