@@ -3,17 +3,16 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 314;
+use Test::More tests => 301;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
 use Test::Exception;
-use Test::Dir;
 use Test::Warn;
 use Test::File qw(file_exists_ok file_not_exists_ok);
 use Test::File::Contents;
 use Locale::TextDomain qw(App-Sqitch);
-use File::Path qw(make_path remove_tree);
+use File::Path qw(remove_tree);
 use Test::NoWarnings;
 use lib 't/lib';
 use MockOutput;
@@ -141,49 +140,9 @@ for my $sub (qw(deploy revert verify)) {
 }
 
 ##############################################################################
-# Test _mkpath.
-my $path = dir 'delete.me';
-dir_not_exists_ok $path, "Path $path should not exist";
-END { remove_tree $path->stringify if -e $path }
-ok $bundle->_mkpath($path), "Create $path";
-dir_exists_ok $path, "Path $path should now exist";
-is_deeply +MockOutput->get_debug, [['    ', __x 'Created {file}', file => $path]],
-    'The mkdir info should have been output';
-
-# Create it again.
-ok $bundle->_mkpath($path), "Create $path again";
-dir_exists_ok $path, "Path $path should still exist";
-is_deeply +MockOutput->get_debug, [], 'Nothing should have been emitted';
-
-# Handle errors.
-FSERR: {
-    # Make mkpath to insert an error.
-    my $mock = Test::MockModule->new('File::Path');
-    $mock->mock( mkpath => sub {
-        my ($file, $p) = @_;
-        ${ $p->{error} } = [{ $file => 'Permission denied yo'}];
-        return;
-    });
-
-    throws_ok { $bundle->_mkpath('foo') } 'App::Sqitch::X',
-        'Should fail on permission issue';
-    is $@->ident, 'bundle', 'Permission error should have ident "bundle"';
-    is $@->message, __x(
-        'Error creating {path}: {error}',
-        path  => 'foo',
-        error => 'Permission denied yo',
-    ), 'The permission error should be formatted properly';
-
-    # Try an error with no path.
-    throws_ok { $bundle->_mkpath('') } 'App::Sqitch::X',
-        'Should fail on nonexistent file';
-    is $@->ident, 'bundle', 'Nonexistant path error should have ident "bundle"';
-    is $@->message, 'Permission denied yo',
-        'Nonexistant path error should be the message';
-}
-
-##############################################################################
 # Test _copy().
+my $path = dir 'delete.me';
+END { remove_tree $path->stringify if -e $path }
 my $file = file qw(sql deploy roles.sql);
 my $dest = file $path, qw(deploy roles.sql);
 file_not_exists_ok $dest, "File $dest should not exist";
