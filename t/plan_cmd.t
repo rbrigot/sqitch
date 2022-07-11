@@ -3,8 +3,8 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 229;
-#use Test::More 'no_plan';
+use Test::More tests => 232;
+# use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::NoWarnings;
@@ -620,6 +620,32 @@ is_deeply +MockOutput->get_page, [
     [ $cmd->formatter->format( $cmd->format, $fmt_params  ) ],
     [ $cmd->formatter->format( $cmd->format, $fmt_params2 ) ],
 ], 'Both events should have been paged without headers';
+
+# Now try raw format of all the changes.
+my $cfg = $CLASS->configure( $config, { format => 'raw' } );
+ok $cmd = $CLASS->new( sqitch => $sqitch, %{ $cfg } ),
+    'Create command with raw format';
+push @changes => $plan->changes;
+
+ok $cmd->execute, 'Execute plan with all changes';
+is_deeply +MockOutput->get_page, [
+    ['# ', __x 'Project: {project}', project => $plan->project ],
+    ['# ', __x 'File:    {file}', file => $plan->file ],
+    [''],
+    map { [ $cmd->formatter->format( $cmd->format, {
+        event         => $_->is_deploy ? 'deploy' : 'revert',
+        project       => $_->project,
+        change_id     => $_->id,
+        change        => $_->name,
+        note          => $_->note,
+        tags          => [ map { $_->format_name } $_->tags ],
+        requires      => [ map { $_->as_string } $_->requires ],
+        conflicts     => [ map { $_->as_string } $_->conflicts ],
+        planned_at    => $_->timestamp,
+        planner_name  => $_->planner_name,
+        planner_email => $_->planner_email,
+    } ) ] } $plan->changes
+], 'Should have paged all changes';
 
 # Make sure we catch bad format codes.
 isa_ok $cmd = $CLASS->new(
